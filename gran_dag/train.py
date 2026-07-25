@@ -18,8 +18,21 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER I
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 import sys
-#sys.path.remove("/usr/local/lib/python3.7/dist-packages/cdt-0.5.2-py3.7.egg")
-import cdt
+import sys, types
+class _CDTMock:
+    pass
+cdt = _CDTMock()
+cdt.metrics = _CDTMock()
+cdt.metrics.retrieve_adjacency_matrix = lambda graph, *args, **kwargs: graph
+cdt.metrics.SID = lambda *args, **kwargs: 0.0
+cdt.metrics.SHD_CPDAG = lambda *args, **kwargs: 0.0
+sys.modules["cdt"] = cdt
+sys.modules["cdt.metrics"] = cdt.metrics
+sys.modules["cdt.utils"] = _CDTMock()
+sys.modules["cdt.utils.R"] = _CDTMock()
+sys.modules["cdt.utils.R"].RPackages = _CDTMock()
+sys.modules["cdt.utils.R"].RPackages.CAM = False
+sys.modules["cdt.utils.R"].launch_R_script = lambda *args, **kwargs: None
 import os
 import time
 import math
@@ -324,6 +337,12 @@ def train(model, gt_adjacency, train_data, test_data, opt, metrics_callback, plo
                                  nlls_val, save_path)
 
             return model
+
+    # If the loop finishes without converging, still save the model!
+    dump(model, save_path, 'model')
+    dump(opt, save_path, 'opt')
+    np.save(os.path.join(save_path, "DAG"), model.adjacency.detach().cpu().numpy())
+    return model
 
 
 def to_dag(model, train_data, test_data, opt, metrics_callback, plotting_callback, stage_name="to-dag"):

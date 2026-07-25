@@ -126,7 +126,7 @@ def plot_learning_curves(not_nlls, aug_lagrangians, aug_lagrangians_ma, aug_lagr
     ax1.legend()
 
     fig.tight_layout()
-    fig.savefig(os.path.join(exp_path, 'learning-curves.pdf'), bbox_inches="tight", padding=0)
+    fig.savefig(os.path.join(exp_path, 'learning-curves.pdf'), bbox_inches="tight")
     fig.clf()
 
 def plot_learning_curves_retrain(losses, losses_val, nlls, nlls_val, exp_path):
@@ -142,5 +142,5 @@ def plot_learning_curves_retrain(losses, losses_val, nlls, nlls_val, exp_path):
     ax1.legend()
 
     fig.tight_layout()
-    fig.savefig(os.path.join(exp_path, 'learning-curves.pdf'), bbox_inches="tight", padding=0)
+    fig.savefig(os.path.join(exp_path, 'learning-curves.pdf'), bbox_inches="tight")
     fig.clf()
