@@ -8,4 +8,4 @@ version = "0.1.0"
 dependencies = []
 
 [tool.setuptools.packages.find]
-include = ["gran_dag*"]
+include = ["gran_dag*", "dag_gnn*"]

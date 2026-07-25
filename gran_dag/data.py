@@ -84,3 +84,50 @@ class DataManagerFile(object):
         samples = self.dataset[torch.as_tensor(sample_idxs).long()]
         return samples, torch.ones_like(samples)  # second output is mask (for intervention in the future)
 
+class DataManagerArray(object):
+    def __init__(self, data: np.ndarray, adjacency: np.ndarray = None, train_samples=0.8, test_samples=None, train=True, normalize=False,
+                 mean=None, std=None, random_seed=42):
+        self.random = np.random.RandomState(random_seed)
+
+        if adjacency is not None:
+            self.adjacency = torch.as_tensor(adjacency).type(torch.Tensor)
+        else:
+            self.adjacency = None
+
+        if isinstance(train_samples, float):
+            train_samples = int(data.shape[0] * train_samples)
+        if test_samples is None:
+            test_samples = data.shape[0] - train_samples
+        assert train_samples + test_samples <= data.shape[0], "The number of examples to load must be smaller than the total size of the dataset"
+
+        shuffle_idx = np.arange(data.shape[0])
+        self.random.shuffle(shuffle_idx)
+        data = data[shuffle_idx[: train_samples + test_samples]]
+
+        if not train:
+            if train_samples == data.shape[0]: 
+                self.dataset = None
+            else:
+                self.dataset = torch.as_tensor(data[train_samples: train_samples + test_samples]).type(torch.Tensor)
+        else:
+            self.dataset = torch.as_tensor(data[: train_samples]).type(torch.Tensor)
+
+        self.mean, self.std = mean, std
+        if normalize and self.dataset is not None:
+            if self.mean is None or self.std is None:
+                self.mean = torch.mean(self.dataset, 0, keepdim=True)
+                self.std = torch.std(self.dataset, 0, keepdim=True)
+            self.dataset = (self.dataset - self.mean) / self.std
+
+        if self.dataset is not None:
+            self.num_samples = self.dataset.size(0)
+        else:
+            self.num_samples = 0
+
+    def sample(self, batch_size):
+        if self.dataset is None:
+            return None, None
+        sample_idxs = self.random.choice(np.arange(int(self.num_samples)), size=(int(batch_size),), replace=False)
+        samples = self.dataset[torch.as_tensor(sample_idxs).long()]
+        return samples, torch.ones_like(samples)
+

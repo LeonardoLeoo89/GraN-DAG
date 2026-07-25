@@ -20,8 +20,6 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 import os
 import argparse
 import copy
-import cdt
-
 import numpy as np
 import torch
 
@@ -150,7 +148,6 @@ def main(opt, metrics_callback=None, plotting_callback=None):
                 retrain(model, train_data, test_data, path_cam, opt, metrics_callback, plotting_callback)
                 old_adj = current_adj
 
-    # if no cam pruning, run it on to-dag exclusively
     elif opt.retrain:
         assert file_exists(opt.exp_path, "to-dag"), \
             "The /to-dag folder is required to run --retrain. Add --to-dag to the command line"
@@ -159,3 +156,64 @@ def main(opt, metrics_callback=None, plotting_callback=None):
         print("Retraining NNs with estimated dag from /to-dag")
         model.reset_params()
         retrain(model, train_data, test_data, "to-dag", opt, metrics_callback, plotting_callback)
+
+def train_from_array(opt, data_array, adjacency_array=None, metrics_callback=None, plotting_callback=None):
+    torch.manual_seed(opt.random_seed)
+    np.random.seed(opt.random_seed)
+
+    if metrics_callback is None:
+        metrics_callback = _print_metrics
+
+    if getattr(opt, 'lr_reinit', None) is None: opt.lr_reinit = getattr(opt, 'lr', 0.001)
+
+    if getattr(opt, 'gpu', False):
+        if getattr(opt, 'float', False):
+            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        else:
+            torch.set_default_tensor_type('torch.cuda.DoubleTensor')
+    else:
+        if getattr(opt, 'float', False):
+            torch.set_default_tensor_type('torch.FloatTensor')
+        else:
+            torch.set_default_tensor_type('torch.DoubleTensor')
+
+    if not os.path.exists(opt.exp_path):
+        os.makedirs(opt.exp_path)
+
+    if opt.model == "NonLinGauss":
+        model = LearnableModel_NonLinGauss(opt.num_vars, opt.num_layers, opt.hid_dim, nonlin=opt.nonlin,
+                                           norm_prod=opt.norm_prod, square_prod=opt.square_prod)
+    elif opt.model == "NonLinGaussANM":
+        model = LearnableModel_NonLinGaussANM(opt.num_vars, opt.num_layers, opt.hid_dim, nonlin=opt.nonlin,
+                                              norm_prod=opt.norm_prod,
+                                              square_prod=opt.square_prod)
+    else:
+        raise ValueError("opt.model has to be in {NonLinGauss, NonLinGaussANM}")
+
+    from .data import DataManagerArray
+    train_data = DataManagerArray(data_array, adjacency=adjacency_array, train_samples=opt.train_samples, test_samples=opt.test_samples, train=True,
+                                 normalize=opt.normalize_data, random_seed=opt.random_seed)
+    test_data = DataManagerArray(data_array, adjacency=adjacency_array, train_samples=opt.train_samples, test_samples=opt.test_samples, train=False,
+                                normalize=opt.normalize_data, mean=train_data.mean, std=train_data.std,
+                                random_seed=opt.random_seed)
+
+    if adjacency_array is not None:
+        dump(train_data.adjacency.detach().cpu().numpy(), opt.exp_path, 'gt-adjacency')
+
+    if opt.pns:
+        num_neighbors = opt.num_neighbors if opt.num_neighbors is not None else opt.num_vars
+        pns(model, train_data, test_data, num_neighbors, opt.pns_thresh, opt.exp_path, metrics_callback, plotting_callback)
+
+    if opt.train:
+        if file_exists(opt.exp_path, "pns"):
+            model = load(os.path.join(opt.exp_path, "pns"), "model.pkl")
+        
+        gt_adj = train_data.adjacency.detach().cpu().numpy() if train_data.adjacency is not None else None
+        train(model, gt_adj, train_data, test_data, opt, metrics_callback, plotting_callback)
+
+    if opt.to_dag:
+        assert file_exists(opt.exp_path, "train"), "The /train folder is required to run to_dag"
+        model = load(os.path.join(opt.exp_path, "train"), "model.pkl")
+        to_dag(model, train_data, test_data, opt, metrics_callback, plotting_callback)
+
+    return model
