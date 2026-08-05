@@ -60,6 +60,8 @@ def compute_constraint(model, w_adj):
 
 
 def is_acyclic(adjacency):
+    if hasattr(adjacency, 'cpu'):
+        adjacency = adjacency.detach().cpu().numpy()
     prod = np.eye(adjacency.shape[0])
     for _ in range(1, adjacency.shape[0] + 1):
         prod = np.matmul(adjacency, prod)
