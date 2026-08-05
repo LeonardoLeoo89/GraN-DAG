@@ -15,7 +15,7 @@ class MLPEncoder(nn.Module):
         super(MLPEncoder, self).__init__()
 
         self.adj_A = nn.Parameter(Variable(torch.from_numpy(adj_A).double(), requires_grad=True)) # TODO: add masking for PNS
-        self.mask_A = torch.Tensor(mask_A)
+        self.register_buffer('mask_A', torch.tensor(mask_A).double())
         self.factor = factor
 
         self.Wa = nn.Parameter(torch.zeros(n_out), requires_grad=True)
