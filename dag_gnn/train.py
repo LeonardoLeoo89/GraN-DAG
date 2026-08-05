@@ -185,5 +185,5 @@ def train_loop(args, train_loader, mask_A, num_nodes):
         if h_A_new.item() <= args.h_tol:
             break
 
-    graph = origin_A.data.clone().numpy()
+    graph = origin_A.data.clone().cpu().numpy()
     return graph
