@@ -61,6 +61,11 @@ class DAGGNNTrainer:
         train_data = TensorDataset(feat_train, feat_train)
         train_loader = DataLoader(train_data, batch_size=self.args.batch_size)
         
+        if self.args.cuda:
+            torch.set_default_tensor_type('torch.cuda.DoubleTensor')
+        else:
+            torch.set_default_tensor_type('torch.DoubleTensor')
+
         if mask_A is None:
             mask_A = np.ones((n_vars, n_vars)) - np.eye(n_vars)
             
