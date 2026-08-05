@@ -54,8 +54,8 @@ class TrExpScipy(torch.autograd.Function):
 
 
 def compute_constraint(model, w_adj):
-    assert (w_adj >= 0).detach().cpu().numpy().all()
-    h = TrExpScipy.apply(w_adj) - model.num_vars
+    assert (w_adj >= 0).all().item()
+    h = torch.trace(torch.matrix_exp(w_adj)) - model.num_vars
     return h
 
 
