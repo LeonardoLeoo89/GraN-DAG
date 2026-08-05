@@ -37,7 +37,7 @@ class GraNDAGTrainer:
             random_seed=42,
             lr=1e-3,
             lr_reinit=None,
-            gpu=False,
+            gpu=torch.cuda.is_available(),
             float=False,
             train_samples=0.8,
             test_samples=None,

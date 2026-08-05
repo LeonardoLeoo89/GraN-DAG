@@ -35,7 +35,7 @@ class DAGGNNTrainer:
             encoder_dropout=0.0,
             decoder_dropout=0.0,
             factor=True,
-            cuda=False,
+            cuda=True,
             x_dims=1,
             z_dims=1
         )

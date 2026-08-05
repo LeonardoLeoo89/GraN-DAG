@@ -162,6 +162,7 @@ def train_loop(args, train_loader, mask_A, num_nodes):
     k_max_iter = int(args.k_max_iter)
 
     for step_k in range(k_max_iter):
+        h_A_new = torch.tensor(h_A_old if h_A_old != np.inf else 1.)
         while c_A < 1e+20:
             for epoch in range(args.epochs):
                 ELBO_loss, origin_A = train_step(train_loader, lambda_A, c_A, optimizer)
